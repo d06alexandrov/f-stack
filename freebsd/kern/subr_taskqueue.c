@@ -377,8 +377,20 @@ taskqueue_drain_tq_queue(struct taskqueue *queue)
 	 * queue lock.
 	 */
 	TASK_INIT(&t_barrier, UCHAR_MAX, taskqueue_task_nop_fn, &t_barrier);
+#if __GNUC__ >= 12
+/*
+ * Suppress dangling-pointer error.
+ * We do not exit this function until t_barrier is used by queue consumer.
+ * So &t_barrier is not a dangling pointer in this case.
+ */
+# pragma GCC diagnostic push
+# pragma GCC diagnostic warning "-Wdangling-pointer"
+#endif
 	STAILQ_INSERT_TAIL(&queue->tq_queue, &t_barrier, ta_link);
 	queue->tq_hint = &t_barrier;
+#if __GNUC__ >= 12
+# pragma GCC diagnostic pop
+#endif
 	t_barrier.ta_pending = 1;
 
 	/*
